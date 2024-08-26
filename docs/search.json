@@ -5,15 +5,15 @@
       "title": "About this blog",
       "description": "Some additional details about the blog",
       "author": [],
-      "contents": "\r\n\r\n\r\n\r\n",
-      "last_modified": "2024-08-26T18:06:11+10:00"
+      "contents": "\r\nMy GitHub account can be found here: https://github.com/brianna-argall\r\n\r\n\r\n\r\n",
+      "last_modified": "2024-08-27T09:26:21+10:00"
     },
     {
       "path": "index.html",
       "title": "Brianna's Blog",
       "author": [],
       "contents": "\r\n\r\n\r\n\r\n",
-      "last_modified": "2024-08-26T18:06:12+10:00"
+      "last_modified": "2024-08-27T09:26:22+10:00"
     }
   ],
   "collections": ["posts/posts.json"]

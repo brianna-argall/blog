@@ -4,6 +4,11 @@ description: |
   Some additional details about the blog
 ---
 
+My GitHub account can be found here: https://github.com/brianna-argall
+
+
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```

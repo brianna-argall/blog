@@ -91,7 +91,7 @@ art_hiv %>%
 It is pretty but it was also a lot of repetition to produce a bunch of similar charts.
 
 
-```{r, echo = FALSE, fig.align = 'center', out.width = '60%', results = 'markup'}
+```{r, echo = FALSE, fig.align = 'center', results = 'markup'}
 knitr::include_graphics("../../images/NNRTI-bar-chart-example.png")
 ```
 
@@ -118,4 +118,4 @@ binary_figure <- function(xvalue) {
 
 ## Comments
 
-You'll notice these functions have a few differences, owing to differences in the datasets and the task. My ggbar() function was from a dataset that had a lot of variables and not as many rows, so handling the variable names was important and there was no need to display large counts nicely. binary_figure() doesn't provide any interactivity and the counts are labelled with the bars (yes I did also consider y axis transformation to make these easier to read). I loved my custom grey that matched the intensity of the colours perfectly for the other column. To achieve this I took the rgb values from my colours - which were selected from a colorbrewer pallette - and found the hsv code corresponding to setting the red, green and blue content each to the average of those three components.
+You'll notice these functions have a few differences, owing to differences in the datasets and the task. My ggbar() function was from a dataset that had a lot of variables and not as many rows, so handling the variable names was important and there was no need to display large counts nicely. binary_figure() doesn't provide any interactivity and the counts are labelled with the bars (yes I did also consider y axis transformation to make these easier to read). I loved my custom grey that matched the intensity of the colours perfectly for the other column. To achieve this I took the rgb values from my colours - which were selected from a colorbrewer palette - and found the hsv code corresponding to setting the red, green and blue content each to the average of those three components.
