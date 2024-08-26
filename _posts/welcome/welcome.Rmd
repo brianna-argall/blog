@@ -1,8 +1,6 @@
 ---
 title: "Welcome to Brianna's Blog"
-description: |
-  Welcome to the blog. We hope you enjoy 
-  reading what we have to say!
+description: "Not much to say here"
 author:
   - name: Brianna Argall
 date: 06-05-2024
@@ -10,6 +8,10 @@ output:
   distill::distill_article:
     self_contained: false
 ---
+
+Hi! Although I hope readers find something useful or interesting from this blog, for now it's mostly a place for me to bring together - and possible refine more - techniques I have used. I've found that I like having examples of my own work I can copy-paste-adapt. 
+
+I'm guessing I'll run my code on examples provided in base R most of the time but I don't promise consistency in that regard.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
