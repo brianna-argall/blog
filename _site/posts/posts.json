@@ -3,12 +3,6 @@
     "path": "posts/welcome/",
     "title": "Welcome to Brianna's Blog",
     "description": "Welcome to our new blog, Brianna's Blog. We hope you enjoy \nreading what we have to say!",
-    "author": [
-      {
-        "name": "Nora Jones",
-        "url": "https://example.com/norajones"
-      }
-    ],
     "date": "2024-06-05",
     "categories": [],
     "contents": "\r\n\r\n\r\n\r\n",
