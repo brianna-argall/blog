@@ -95,6 +95,7 @@ It is pretty but it was also a lot of repetition to produce a bunch of similar c
 knitr::include_graphics("../../images/NNRTI-bar-chart-example.png")
 ```
 
+More examples can be seen at [Exploring synthetic HIV data](../2024-08-27-exploring-sythetic-hiv-data/exploring-sythetic-hiv-data.html)
 
 For the specific case of binary variables I had:
 

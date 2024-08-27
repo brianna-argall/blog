@@ -1,0 +1,581 @@
+---
+title: "Exploring synthetic HIV data"
+description: |
+  More figure examples.
+author:
+  - name: Brianna Argall
+    url: {}
+date: 2024-06-27
+output:
+  distill::distill_article:
+    self_contained: false
+    code_folding: hide
+---
+
+This dataset can be found at: 
+
+Kuo, Nicholas (2022). The Heath Gym Synthetic HIV Dataset. figshare. Dataset. https://doi.org/10.6084/m9.figshare.19838470.v1
+
+More information on the dataset is available at:
+ Kuo et al. (2022). 
+The Health Gym: Synthetic Health-Related Datasets for the Development of Reinforcement Learning Algorithms. arXiv preprint arXiv:2203.06369. 
+
+I have hidden the code by default (some of it is long and boring) - please click "hide" to toggle hiding the blocks. 
+
+```{r setup,include=FALSE}
+knitr::opts_chunk$set(message = FALSE)
+
+library(tidyverse)
+library(knitr)
+
+# Install package if necessary
+if(!"ggridges" %in% installed.packages()) install.packages("ggridges")
+
+library(ggridges)
+```
+
+```{r load_df, include=FALSE}
+art_hiv <- read_csv("https://figshare.com/ndownloader/files/35249488", 
+                    show_col_types = FALSE)
+```
+
+
+```{r variable_renaming}
+art_hiv %>%
+  rename_with(function(x) gsub(" ", "_", x)) %>%
+  rename_with(function(x) gsub("\\(|\\)|\\.|-", "", x)) %>% # remove ().-
+  mutate(Gender = factor(Gender, labels = c("1" = "Male", 
+                                            "2" = "Female")),
+         Ethnicity = factor(Ethnic, labels = c("2" = "African", 
+                                               "3" = "Caucasian",
+                                               "4" = "Other")),
+         Base_Drug_Combo = factor(Base_Drug_Combo, 
+                                  labels = c("0" = "FTC + TDF",
+                                             "1" = "3TC + ABC",
+                                             "2" = "FTC + TAF",
+                                             "3" = "DRV + FTC + TDF",
+                                             "4" = "FTC + RTVB + TDF",
+                                             "5" = "Other")),
+         Comp_INI = factor(Comp_INI, labels = c("0" = "DTG",
+                                                "1" = "RAL",
+                                                "2" = "EVG",
+                                                "3" = "Not Applied")),
+         Comp_NNRTI = factor(Comp_NNRTI, labels = c("0" = "NVP",
+                                                    "1" = "EFV",
+                                                    "2" = "RPV",
+                                                    "3" = "Not Applied")),
+         Extra_PI = factor(Extra_PI, labels = c("0" = "DRV",
+                                                "1" = "RTVB",
+                                                "2" = "LPV",
+                                                "3" = "RTV",
+                                                "4" = "ATV",
+                                                "5" = "Not Applied")),
+         Extra_pkEn = factor(Extra_pkEn, labels = c("0" = "False",
+                                                    "1" = "True")),
+         VL_M = factor(VL_M, labels = c("0" = "False",
+                                        "1" = "True")),
+         CD4_M = factor(CD4_M, labels = c("0" = "False",
+                                          "1" = "True")),
+         Drug_M = factor(Drug_M, labels = c("0" = "False",
+                                            "1" = "True")),
+         PatientID = factor(PatientID),
+         Ethnic = NULL) %>%
+  rename(Row_Number = "1") -> art_hiv
+
+# Note: No observations list Asian ethnicity, hence this label was not used.
+```
+
+
+
+## Data dictionary
+
+There are `r nrow(art_hiv)` rows and `r ncol(art_hiv)` columns in the dataframe.
+A description of the columns is provided in this table. 
+Although the description of the `Ethnicity` column includes Asian, 
+no one was listed as having this ethnicity in the data.
+
+```{r data_dictionary_table}
+col_desc <- c("An integer indicating row number",
+              "Viral Load (copies per mL)",
+              "CD4 Absolute Count (copies per mm^3)",
+              "CD4 Relative Count (copies per mm^3)",
+              "Gender, male or female",
+              "Base Drug Combination",
+              "Complementary Integrase Inhibitor",
+              "Complementary Non-Nucleoside Reverse Transcriptase Inhibitor",
+              "Extra Protease Inhibitor",
+              "Extra Pharmacokinetic Enhancer (y/n)",
+              "Viral load measured (y/n)",
+              "CD4 measured (y/n)",
+              "Drug recorded (y/n)",
+              "An integer indicating patient ID",
+              "An integer indicating timepoints",
+              "Ethnicity, Asian, African, Caucasian or other")
+
+kable(cbind(lapply(art_hiv, class), col_desc), 
+      col.names = c("Column", "Class", "Column description"))
+```
+
+## Univariate visualisations
+
+```{r patient_row_amounts, include=FALSE}
+art_hiv %>%
+  group_by(PatientID) %>%
+  tally() %>%
+  distinct(n) -> rows_per_patient
+
+art_hiv %>%
+  distinct(PatientID) %>%
+  tally() -> patient_amount
+
+rows_per_patient * patient_amount == nrow(art_hiv) # TRUE :)
+```
+
+
+No visualisation is provided for `Row_Number`, `Timepoints` or for `Patient_ID`. 
+There are `r rows_per_patient` rows per patient, each for a different point in time and `r patient_amount` patients.
+
+### VL visualisation
+
+```{r VL_basic_hist}
+art_hiv %>%
+  ggplot(aes(x = VL)) +
+    geom_histogram() +
+    scale_y_continuous(labels = scales::label_comma(),
+                  name = "Count") +
+    scale_x_continuous(labels = scales::label_comma(),
+                 name = "Viral Load (copies per mL)") +
+  ggtitle("Viral load histogram")
+```
+
+
+```{r VL_sqrt_both}
+art_hiv %>%
+  ggplot(aes(x = VL)) +
+    geom_histogram() +
+    scale_y_sqrt(labels = scales::label_comma(),
+                  name = "Count",
+                 # added breaks for low counts
+                 breaks = c(10^3, 10^4, 5*10^4, 10^5, 1.5*10^5, 2*10^5)) +
+    scale_x_sqrt(labels = scales::label_comma(),
+                 breaks = c(100, 10^3, 5*10^3, 10^4, 2.5*10^4, 5*10^4, 7.5*10^4),
+                 name = "Viral Load (copies per mL)") +
+  ggtitle("Viral load histogram with square root transformation of both axes")
+```
+
+I chose to apply a square-root transformation to both axes to aid visibility of low values. The square-root transformation was chosen over a log transformation to change the apparent distribution shape less. 
+
+
+```{r VL_timepoints_untrans}
+art_hiv %>%
+  filter(Timepoints %in% seq(0, 59, 8)) %>%
+  ggplot(aes(x = VL)) +
+    geom_histogram(binwidth = 5000) +
+    scale_y_continuous(labels = scales::label_comma(),
+                       name = "Count") +
+    scale_x_continuous(labels = scales::label_comma(), 
+                       name = "Viral Load (copies per mL)") +
+  facet_wrap(.~factor(Timepoints), ncol = 3) +
+  ggtitle("Viral load histograms for selected timepoints")
+```
+
+```{r VL_timepoints_sqrt}
+art_hiv %>%
+  filter(Timepoints %in% seq(0, 59, 8)) %>%
+  ggplot(aes(x = VL)) +
+    geom_histogram() +
+    scale_y_sqrt(labels = scales::label_comma(),
+                 # default breaks overlapped
+                 breaks = c(10, 250, 10^3, 2.5*10^3, 5*10^3),
+                 name = "Count") +
+    scale_x_sqrt(labels = scales::label_comma(), 
+                 name = "Viral Load (copies per mL)",
+                 # default breaks overlapped
+                 breaks = c(100, 5*10^3, 2.5*10^4, 7.5*10^4)) +
+  facet_wrap(.~factor(Timepoints), ncol = 3) +
+  ggtitle("Viral load histograms for selected timepoints with transformed axes")
+```
+
+Histograms of viral load displayed for selected time points. A square root transformation has been applied to each axis. This aids visibility of low values and facilitates comparison with the main histograms for viral load.
+
+There is a ridge plot of viral load presented near the end of the document, placed there due to its length.
+
+
+### CD4 visualisation
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = CD4)) +
+  geom_histogram() +
+  ylab("Count") +
+  xlab("CD4+") +
+  ggtitle("Absolute CD4+ histogram") +
+  scale_y_continuous(labels = scales::label_comma())
+
+```
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = CD4)) +
+  geom_histogram() +
+  ylab("Count") +
+  xlab("CD4+") +
+  scale_x_sqrt(breaks = c(100, 400, 1000, 2500, 5000, 10000, 15000)) +
+  scale_y_sqrt(labels = scales::label_comma(),
+               breaks = c(10^2, 2.5*10^3, 10^4, 3*10^4, 5*10^4, 10^5)) +
+  ggtitle("Viral load histogram with square root transformation of both axes")
+```
+
+
+### Rel CD4 visualisation
+
+```{r}
+art_hiv %>%
+  mutate(high_rel = if_else(Rel_CD4 >= 100, "high", "expected")) %>%
+  ggplot(aes(x = Rel_CD4, fill = high_rel)) +
+  geom_histogram() +
+  geom_vline(xintercept = 100, linetype = "longdash", alpha = 0.25) +
+  ggtitle("Relative CD4+ histogram") +
+  xlab("Relative CD4+") +
+  scale_fill_manual("Rel_CD4 >= 100?", 
+                    values = c("#1b9e77", "#d95f02"),
+                    labels = c("No", "Yes"))
+```
+```{r}
+art_hiv %>%
+  mutate(high_rel = if_else(Rel_CD4 >= 100, "high", "expected")) %>%
+  ggplot(aes(x = Rel_CD4, fill = high_rel)) +
+  # I tried changing bin or bin_width to have all >= 100 on one side but failed
+  geom_histogram(bins = 20) +
+  geom_vline(xintercept = 100, linetype = "longdash", alpha = 0.25) +
+  ggtitle("Relative CD4+ histogram with square root transformation to both axes") +
+  scale_x_sqrt(breaks = c(5, 25, 50, 75, 100, 200, 300, 400),
+               name = "Relative CD4+") +
+  scale_y_sqrt(labels = scales::label_comma(),
+               name = "Count",
+               breaks = c(100, 10^3, 10^4, 3*10^4, 6*10^4, 9*10^4)) +
+  # this would be neater if I used LaTex for the symbol
+  scale_fill_manual("Rel_CD4 >= 100?", 
+                    values = c("#1b9e77", "#d95f02"),
+                    labels = c("No", "Yes"))
+```
+
+
+### Gender visualisation
+
+```{r}
+art_hiv %>%
+  group_by(PatientID, Gender) %>%
+  filter(row_number(PatientID) == 1) %>%
+  ggplot(aes(x = Gender, fill = Gender)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     name = "Count") +
+  scale_fill_manual(values = c("#8dd3c7", "#bebada")) +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None") +
+  ggtitle("Patient gender bar chart") +
+  stat_count(geom = "text", aes(label = after_stat(count)), vjust = -0.5)
+```
+
+### Base Drug Combo visualisation
+
+```{r}
+art_hiv %>%
+  # Not sure how to programmatically reorder according to size
+  # while keeping "Other" on the end, so manual it is
+  mutate(Base_Drug_Combo = factor(Base_Drug_Combo, 
+                                  levels = c("FTC + TDF", 
+                                             "3TC + ABC", 
+                                             "DRV + FTC + TDF",
+                                             "FTC + RTVB + TDF",
+                                             "FTC + TAF",
+                                             "Other"))) %>%
+  ggplot(aes(x = Base_Drug_Combo, fill = Base_Drug_Combo)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     name = "Count") +
+  # Without modification the labels overlap
+  scale_x_discrete(labels = gsub("\\s", "\n", levels(art_hiv$Base_Drug_Combo)),
+                   name = "Base Drug Combination") +
+  # I tried to put a little bit of thought into the colours
+  # e.g. 3TC & ABC don't appear elsewhere so no blue tie in
+  # I kept these colours for all categorical >2 variables
+  scale_fill_manual(values = c("#b3e2cd", "#fdcdac", "#cbd5e8", 
+                               "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None") +
+  ggtitle("Base drug combination bar chart")
+
+```
+
+Note that this is per observation/time point, not per person. 
+
+### Comp INI visualisation
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = reorder(Comp_INI, Comp_INI, length), fill = Comp_INI)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Complementary integrase inhibitor bar chart") +
+  xlab("Complementary integrase inhibitor") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+Note that this is per observation/time point, not per person. 
+
+```{r}
+art_hiv %>%
+  filter(Comp_INI != "Not Applied") %>%
+  ggplot(aes(x = reorder(Comp_INI, Comp_INI, length), fill = Comp_INI)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     # Added 2,500 break to defaults
+                     breaks = c(2.5*10^3, 2*10^4, 4*10^4, 6*10^4)) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Complementary integrase inhibitor bar chart, not showing unused") +
+  xlab("Complementary integrase inhibitor") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+### Comp NNRTI visualisation
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = Comp_NNRTI, fill = Comp_NNRTI)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Complementary NNRTI bar chart") +
+  xlab("Complementary NNRTI") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+Note that this is per observation/time point, not per person. 
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = Comp_NNRTI, fill = Comp_NNRTI)) +
+  geom_bar() +
+  scale_y_log10(labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Complementary NNRTI bar chart using log scale") +
+  xlab("Complementary NNRTI") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+
+### Extra PI visualisation
+
+```{r}
+art_hiv %>%
+  ggplot(aes(x = reorder(Extra_PI, Extra_PI, length), fill = Extra_PI)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     name = "Count") +
+  xlab("Extra Protease Inhibitor") +
+  ggtitle("Extra protease inhibitor bar chart") +
+  scale_fill_manual(values = c("#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+Note that this is per observation/time point, not per person.
+
+```{r}
+art_hiv %>%
+  filter(Extra_PI != "Not Applied") %>%
+  ggplot(aes(x = reorder(Extra_PI, Extra_PI, length), fill = Extra_PI)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma(),
+                     name = "Count") +
+  xlab("Extra Protease Inhibitor") +
+  scale_fill_manual(values = c("#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None") +
+  ggtitle("Extra protease inhibitor bar chart, not showing unused")
+```
+
+
+### Extra pk En visualisation
+
+```{r}
+binary_figure <- function(xvalue) {
+  art_hiv %>%
+    ggplot(aes(x = {{xvalue}}, fill = {{xvalue}})) +
+    geom_bar() +
+    scale_y_continuous(labels = scales::label_comma(),
+                       name = "Count") +
+    # I just think the only grey is boring & defaults were ugly (too saturated)
+    # I also wanted to avoid red or green symbolism
+    scale_fill_manual(values = c("#8dd3c7", "#bebada")) +
+    theme_bw() +
+    theme(panel.border = element_blank(),
+          panel.grid.major.x = element_blank(),
+          legend.position = "None") +
+    stat_count(geom = "text", aes(label = after_stat(count)), vjust = -0.5)
+}
+
+```
+
+```{r}
+binary_figure(Extra_pkEn) +
+  xlab("Extra Pharmacokinetic Enhancer provided") +
+  ggtitle("Extra pharmacokinetic enhancer bar chart")
+```
+
+Note that this is per observation/time point, not per person. 
+
+
+### VL M visualisation
+```{r}
+binary_figure(VL_M) +
+  xlab("Viral load measurement") +
+  ggtitle("Viral load measurement bar chart")
+```
+
+Note that this is per observation/time point, not per person. 
+
+### CD4 M visualisation
+
+```{r}
+binary_figure(CD4_M) +
+  xlab("CD4+ measurement") +
+  ggtitle("CD4+ measurement bar chart")
+```
+
+Note that this is per observation/time point, not per person. 
+
+### Drug M visualisation
+
+```{r}
+binary_figure(Drug_M) +
+  xlab("Drug measurement/recorded") +
+  ggtitle("Drug measurement bar chart")
+```
+
+
+Note that this is per observation/time point, not per person. 
+
+### Ethnicity visualisation
+
+
+```{r}
+art_hiv %>%
+  group_by(PatientID, Ethnicity) %>%
+  filter(row_number(PatientID) == 1) %>%
+  ggplot(aes(x = Ethnicity, fill = Ethnicity)) +
+  geom_bar() +
+  scale_y_continuous(labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Ethnicity bar chart") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None") +
+  stat_count(geom = "text", aes(label = after_stat(count)), vjust = -0.5)
+```
+```{r}
+art_hiv %>%
+  group_by(PatientID, Ethnicity) %>%
+  filter(row_number(PatientID) == 1) %>%
+  ggplot(aes(x = Ethnicity, fill = Ethnicity)) +
+  geom_bar() +
+  scale_y_log10(labels = scales::label_comma()) +
+  scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
+  ggtitle( "Ethnicity bar chart with log scale") +
+  ylab("Count") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        legend.position = "None")
+```
+
+## Ridgeline plot
+
+
+```{r, fig.height=12}
+art_hiv %>%
+  mutate(Timepoints = as.factor(Timepoints)) %>%
+  ggplot(aes(x = VL, y = Timepoints, fill = after_stat(x))) +
+  geom_density_ridges_gradient() +
+  scale_x_log10(labels = scales::label_comma(),
+                breaks = c(10, 10^2, 10^3, 10^4, 10^5),
+                name = "Viral Load",
+                # 2nd axis aids interpretation given plot height
+                sec.axis = dup_axis()) +
+  # I want readers to move forwards through time as they scroll down
+  scale_y_discrete(limits = rev) +
+  scale_fill_viridis_c(trans = "log") +
+  theme_bw() +
+  theme(panel.border = element_blank(),
+        legend.position = "None")
+```
+
+## Other exploration / data checking
+
+```{r class.source = "fold-show"}
+# confirming that Row_Number is just row numbers and not some other sequence
+art_hiv %>%
+  mutate(row_n = row_number(Row_Number),
+         consistent = ifelse(row_n - 1  == Row_Number, TRUE, FALSE)) %>%
+  select(consistent) %>%
+  summary()
+  
+```
+  
+As you can see below, even where a binary indicator shows a variable as not being measured this does not mean there is no value provided for that variable.
+  
+This may be an artifact from the data being synthetic. 
+
+```{r class.source = "fold-show"}
+art_hiv %>%
+  filter(VL_M == "False") %>%
+  select(VL, VL_M) %>%
+  head()
+```
+
+
+```{r class.source = "fold-show"}
+art_hiv %>%
+  filter(CD4_M == "False") %>%
+  select(CD4, Rel_CD4, CD4_M) %>%
+  head()
+```
+
+```{r class.source = "fold-show"}
+art_hiv %>%
+  filter(Drug_M == "False") %>%
+  select(Drug_M, Base_Drug_Combo, Comp_INI, Comp_NNRTI, Extra_PI, Extra_pkEn) %>%
+  head()
+```
+
+
+
