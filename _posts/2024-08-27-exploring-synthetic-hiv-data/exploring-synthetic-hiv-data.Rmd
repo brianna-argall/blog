@@ -270,13 +270,16 @@ art_hiv %>%
   ggplot(aes(x = Gender, fill = Gender)) +
   geom_bar() +
   scale_y_continuous(labels = scales::label_comma(),
-                     name = "Count") +
+                     name = "Count",
+                     # This fixes an issue with text being clipped at the top
+                     expand = expansion(mult = 0.1)) +
   scale_fill_manual(values = c("#8dd3c7", "#bebada")) +
   theme_bw() +
   theme(panel.border = element_blank(),
         panel.grid.major.x = element_blank(),
         legend.position = "None") +
   ggtitle("Patient gender bar chart") +
+  # vjust here shifts the text fully on top of the bar
   stat_count(geom = "text", aes(label = after_stat(count)), vjust = -0.5)
 ```
 
@@ -431,7 +434,8 @@ binary_figure <- function(xvalue) {
     ggplot(aes(x = {{xvalue}}, fill = {{xvalue}})) +
     geom_bar() +
     scale_y_continuous(labels = scales::label_comma(),
-                       name = "Count") +
+                       name = "Count",
+                       expand = expansion(mult = 0.1)) +
     # I just think the only grey is boring & defaults were ugly (too saturated)
     # I also wanted to avoid red or green symbolism
     scale_fill_manual(values = c("#8dd3c7", "#bebada")) +
@@ -492,7 +496,8 @@ art_hiv %>%
   filter(row_number(PatientID) == 1) %>%
   ggplot(aes(x = Ethnicity, fill = Ethnicity)) +
   geom_bar() +
-  scale_y_continuous(labels = scales::label_comma()) +
+  scale_y_continuous(labels = scales::label_comma(),
+                     expand = expansion(mult = 0.1)) +
   scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
   ggtitle( "Ethnicity bar chart") +
   ylab("Count") +
@@ -502,13 +507,15 @@ art_hiv %>%
         legend.position = "None") +
   stat_count(geom = "text", aes(label = after_stat(count)), vjust = -0.5)
 ```
+
 ```{r}
 art_hiv %>%
   group_by(PatientID, Ethnicity) %>%
   filter(row_number(PatientID) == 1) %>%
   ggplot(aes(x = Ethnicity, fill = Ethnicity)) +
   geom_bar() +
-  scale_y_log10(labels = scales::label_comma()) +
+  scale_y_log10(labels = scales::label_comma(),
+                expand = expansion(mult = 0.1)) +
   scale_fill_manual(values = c("#b3e2cd", "#f4cae4", "#e6f5c9", "#E1E1E1")) +
   ggtitle( "Ethnicity bar chart with log scale") +
   ylab("Count") +
