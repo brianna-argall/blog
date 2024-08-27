@@ -9,7 +9,7 @@ date: 2024-06-27
 output:
   distill::distill_article:
     self_contained: false
-    code_folding: hide
+    code_folding: true
 ---
 
 This dataset can be found at: 
@@ -20,7 +20,6 @@ More information on the dataset is available at:
  Kuo et al. (2022). 
 The Health Gym: Synthetic Health-Related Datasets for the Development of Reinforcement Learning Algorithms. arXiv preprint arXiv:2203.06369. 
 
-I have hidden the code by default (some of it is long and boring) - please click "hide" to toggle hiding the blocks. 
 
 ```{r setup,include=FALSE}
 knitr::opts_chunk$set(message = FALSE)

@@ -1,0 +1,143 @@
+---
+title: "Column wrangling"
+description: |
+  When there are too many columns to want to rename and change class
+  individually for each one
+author:
+  - name: Brianna Argall
+    url: {}
+date: 2024-08-27
+output:
+  distill::distill_article:
+    self_contained: false
+---
+
+
+```{r setup}
+# The code below requires tidyverse but I'm not running it here
+# library(tidyverse)
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+This code was written based on data that is not open access. Rather than showing outputs and examples I'll break apart the code in more detail. 
+
+This dataset had more than 150 columns, so I did not want to do the tedious work of reassigning names and converting columns to factors. 
+
+It also came with a data dictionary and I saw pretty quickly that most of the numeric variables had units in brackets. I used this to create a list of variables that I thought were numeric.
+
+The `|` means "OR" and in regex with R you need to escape twice `\\` to deal with both R and regex requiring the escape character to not evaluate special punctuation. 
+
+```{r}
+## extract potentially numeric variables
+# in the dd units are in () & are present in most numeric variables
+# however ratios don't have this and should also be included
+# capturing decimal values ensures inclusion of pH
+numeric_cols <- dd$Variables[str_detect(dd$Description, 
+                                        "\\(|time|ratio|[:digit:].")]
+```
+
+Then it was on making changes to the key dataframe. I'll go through this in more detail below. 
+
+```{r}
+df <- df %>%
+  # not in data dictionary, just row number
+  select(-"...1") %>%
+  ## convert variables with only 0s and 1s to factor
+  # numeric_cols identifies some binary factors as numeric
+  mutate(across(where(~is.numeric(.) && 
+                           n_distinct(.) <= 2 && 
+                           all(unique(.) %in% c(0, 1))), as.factor)) %>%
+  mutate(across(!all_of(numeric_cols), as.factor)) %>%
+  mutate(across(where(is.character), as.factor)) %>%
+  # replace . with _ in variable names
+  rename_with(function(x) gsub("\\.", "_", x)) %>%
+  # remove _ at end of variable name
+  rename_with(function(x) gsub("_$", "", x)) %>%
+  mutate(inpatient_number = as.character(inpatient_number)) %>%
+  mutate(discharge_day = as.numeric(dischargeDay), .keep = "unused") %>%
+  # Change from camelCase to snake_case for consistency
+  # if considering writing regex solution, beware pH
+  mutate(age_category = factor(ageCat, 
+                               labels = c("20s", "30s", "40s", "50s", 
+                                          "60s", "70s", "80s", "90+")), 
+         destination_discharge = DestinationDischarge, 
+         .keep = "unused")
+```
+
+First, I removed the column called "...1" from the dataframe. This also happened to be the first column but generally it's better (more robust) to remove by name instead of position. The `-` means the column is removed, otherwise select would return only the listed column (the opposite of what I wanted). 
+
+```{r}
+df %>%
+  # not in data dictionary, just row number
+  select(-"...1") 
+```
+
+Then, knowing that I had captured some binary variables in my numeric variables list, I converted all of the binary variables from numeric to factor. Sometimes I have adjusted this to as.logical instead of as.factor so that the TRUE FALSE values are explicit but in this case factor was fine. 
+
+This snippet looks across the columns, finding the ones which are numeric, have only two values, and those values are only 0s and/or 1s. Those columns are mutated to factor. 
+
+```{r}
+df_in_progress %>%
+## convert variables with only 0s and 1s to factor
+  # numeric_cols identifies some binary factors as numeric
+  mutate(across(where(~is.numeric(.) && 
+                           n_distinct(.) <= 2 && 
+                           all(unique(.) %in% c(0, 1))), as.factor))
+```
+
+The `.` is a trick for working with piped expressions. The above code block is equivalent to:
+
+```{r}
+mutate(df_in_progress, across(where(~is.numeric(df_in_progress) && 
+                                    n_distinct(df_in_progress) <= 2 && 
+                                    all(unique(df_in_progress) %in% c(0, 1))), as.factor))
+```
+
+
+After mutating the binaries, I converted everything not listed in my numeric_cols vector I created from the data dictionary
+
+```{r}
+df_in_progress %>%
+  mutate(across(!all_of(numeric_cols), as.factor))
+```
+
+Then everything which consisted only of character values (there were no free text columns)
+
+```{r}
+df_in_progress %>%
+  mutate(across(where(is.character), as.factor))
+```
+
+Having now sorted out my column classes for the most part, I moved on to renaming. `$` is an anchor, it can be placed after any character to specify that the condition is for when that character is at the end of a string.
+
+```{r}
+df_in_progress %>%
+  # replace . with _ in variable names
+  rename_with(function(x) gsub("\\.", "_", x)) %>%
+  # remove _ at end of variable name
+  rename_with(function(x) gsub("_$", "", x))
+```
+
+I decided that since patient number didn't have numeric information I wanted it to be treated as a character
+
+```{r}
+df_in_progress %>%
+  mutate(inpatient_number = as.character(inpatient_number))
+```
+
+If I didn't use the .keep argument, I would have has both the dischargeDay and discharge_day variables in my new dataframe. There were only a few variable which didn't follow the same format as the rest so I changed those individually.
+
+```{r}
+mutate(discharge_day = as.numeric(dischargeDay), .keep = "unused") %>%
+  # Change from camelCase to snake_case for consistency
+  # if considering writing regex solution, beware pH
+  mutate(age_category = factor(ageCat, 
+                               labels = c("20s", "30s", "40s", "50s", 
+                                          "60s", "70s", "80s", "90+")), 
+         destination_discharge = DestinationDischarge, 
+         .keep = "unused")
+```
+
+## That's it!
+
+After this, I did a bunch of checking (e.g. going through `summary(df)`) to check that results were as expected which resulted in edits to the code (e.g. adding ratios to the numeric variables list). Advice to anyone doing that in future, checking in batches - e.g. selecting 20 columns at a time - may be easier than having all of the output as one long chunk. 
