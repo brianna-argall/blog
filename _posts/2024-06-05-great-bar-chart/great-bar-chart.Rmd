@@ -53,7 +53,7 @@ ggbar <- function(xvalue) {
 Iris is convenient as an inbuilt dataset but this is pretty boring.... 
 It also doesn't demonstrate the work I did to automatically make the x-axis title nicer. Nonetheless you can see that it is less boring than the standard.
 
-```{r}
+```{r, preview=TRUE}
 df <- iris
 
 ggbar(Species)

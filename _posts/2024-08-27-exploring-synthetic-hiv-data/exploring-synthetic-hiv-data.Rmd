@@ -284,7 +284,7 @@ art_hiv %>%
 
 ### Base Drug Combo visualisation
 
-```{r}
+```{r, preview=TRUE}
 art_hiv %>%
   # Not sure how to programmatically reorder according to size
   # while keeping "Other" on the end, so manual it is
